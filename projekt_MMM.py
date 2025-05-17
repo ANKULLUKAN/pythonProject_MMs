@@ -1,7 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import tkinter as tk
+from tkinter import ttk
 
 
+#model
 def u_step(t, amplitude, duration):
     return amplitude if t < duration else 0
 
@@ -11,7 +14,6 @@ def u_triangle(t, amplitude, period):
 def u_sine(t, amplitude, frequency):
     return amplitude * np.sin(2 * np.pi * frequency * t)
 
-# model
 def model(x, t, u_func, M, b, k):
     x1, x2 = x
     u = u_func(t)
@@ -19,7 +21,6 @@ def model(x, t, u_func, M, b, k):
     dx2dt = (u - b * x2 - k * x1) / M
     return np.array([dx1dt, dx2dt])
 
-# Eulera
 def euler(x0, u_func, dt, T, M, b, k):
     t = np.arange(0, T, dt)
     x = np.zeros((len(t), len(x0)))
@@ -28,7 +29,6 @@ def euler(x0, u_func, dt, T, M, b, k):
         x[i] = x[i-1] + dt * model(x[i-1], t[i-1], u_func, M, b, k)
     return t, x
 
-#Runge Kutta 4
 def rk4(x0, u_func, dt, T, M, b, k):
     t = np.arange(0, T, dt)
     x = np.zeros((len(t), len(x0)))
@@ -42,110 +42,115 @@ def rk4(x0, u_func, dt, T, M, b, k):
     return t, x
 
 
-def main(T, M, b, k, fi_deg, dt, u_func):
-    fi_rad = fi_deg * np.pi / 180
-    x0 = [-r * fi_rad, 0.0]
-    print("warunki poczatkowe")
-    print(x0)
+def run_simulation():
+    try:
+        M = float(entry_M.get())
+        b = float(entry_b.get())
+        k = float(entry_k.get())
+        r = float(entry_r.get())
+        dt = float(entry_dt.get())
+        T = float(entry_T.get())
+        fi_deg = float(entry_fi.get())
+        signal = signal_type.get()
 
-    # Symulacja
-    t_euler, x_euler = euler(x0, u_func, dt, T, M, b, k)
-    t_rk4, x_rk4 = rk4(x0, u_func, dt, T, M, b, k)
+        fi_rad = fi_deg * np.pi / 180
+        x0 = [-r * fi_rad, 0.0]
 
-    # Wartosc sygn wej
-    u_values = np.array([u_func(ti) for ti in t_euler])
-
-    plt.figure(figsize=(12, 8))
-
-    # Wykres u(t)
-    plt.subplot(3, 1, 1)
-    plt.plot(t_euler, u_values, label='Wymuszenie u(t)', color='purple')
-    plt.ylabel('u(t)')
-    plt.title('Sygnał wejściowy')
-    plt.grid()
-    plt.legend()
-
-    # Wykres x(t)
-    plt.subplot(3, 1, 2)
-    plt.plot(t_euler, x_euler[:, 0], label='Euler  x(t)')
-    plt.plot(t_rk4, x_rk4[:, 0], label='RK4  x(t)', linestyle='--')
-    plt.ylabel('Pozycja x(t) [m]')
-    plt.title('Pozycja układu')
-    plt.grid()
-    plt.legend()
-
-    # Wykres prędkości v(t)
-    plt.subplot(3, 1, 3)
-    plt.plot(t_euler, x_euler[:, 1], label='Euler  v(t)')
-    plt.plot(t_rk4, x_rk4[:, 1], label='RK4  v(t)', linestyle='--')
-    plt.ylabel('Prędkość v(t) [m/s]')
-    plt.xlabel('Czas [s]')
-    plt.title('Prędkość układu')
-    plt.grid()
-    plt.legend()
-
-    plt.tight_layout()
-    plt.show()
-    return (T, M, b, k, fi_deg, r)
+        if signal == "Skok":
+            amp = float(param1.get())
+            dur = float(param2.get())
+            u_func = lambda t: u_step(t, amp, dur)
+        elif signal == "Trójkąt":
+            amp = float(param1.get())
+            per = float(param2.get())
+            u_func = lambda t: u_triangle(t, amp, per)
+        else:  # Sinus
+            amp = float(param1.get())
+            freq = float(param2.get())
+            u_func = lambda t: u_sine(t, amp, freq)
 
 
-# interfejs opis wer 1
+        t_euler, x_euler = euler(x0, u_func, dt, T, M, b, k)
+        t_rk4, x_rk4 = rk4(x0, u_func, dt, T, M, b, k)
+        u_values = np.array([u_func(ti) for ti in t_euler])
 
-print("Podaj parametry symulacji:")
-M = float(input("Masa M (kg): "))
-b = float(input("Tłumienie b (Ns/m): "))
-k = float(input("Sprężystość k (N/m): "))
-r = float(input("Promień r (m) : "))
-dt = float(input("Krok czasowy dt (s) : "))
-T = float(input("Czas symulacji T (s) : "))
-fi_deg = float(input("Podaj początkowy kąt θ [deg] (domyślnie 0): ") or 0.0)
 
-# sygnal wejsc
-print("\nWybierz sygnał wejściowy:")
-print("1 - Skok")
-print("2 - Trójkąt")
-print("3 - Sinus")
-choice = input("Twój wybór : ")
+        plt.figure(figsize=(12, 8))
+        plt.subplot(3, 1, 1)
+        plt.plot(t_euler, u_values, label='Wymuszenie u(t)', color='purple')
+        plt.ylabel('u(t)')
+        plt.title('Sygnał wejściowy')
+        plt.grid()
+        plt.legend()
 
-if choice == "1":
-    amplitude = float(input("Amplituda skoku : "))
-    duration = float(input("Czas trwania skoku : "))
-    u_func = lambda t: u_step(t, amplitude=amplitude, duration=duration)
-elif choice == "2":
-    amplitude = float(input("Amplituda trójkąta : "))
-    period = float(input("Okres trójkąta : "))
-    u_func = lambda t: u_triangle(t, amplitude=amplitude, period=period)
-else:
-    amplitude = float(input("Amplituda sinusa : "))
-    frequency = float(input("Częstotliwość sinusa (Hz) : "))
-    u_func = lambda t: u_sine(t, amplitude=amplitude, frequency=frequency)
+        plt.subplot(3, 1, 2)
+        plt.plot(t_euler, x_euler[:, 0], label='Euler  x(t)')
+        plt.plot(t_rk4, x_rk4[:, 0], label='RK4  x(t)', linestyle='--')
+        plt.ylabel('Pozycja x(t) [m]')
+        plt.title('Pozycja układu')
+        plt.grid()
+        plt.legend()
 
-main(T, M, b, k, fi_deg, dt, u_func)
+        plt.subplot(3, 1, 3)
+        plt.plot(t_euler, x_euler[:, 1], label='Euler  v(t)')
+        plt.plot(t_rk4, x_rk4[:, 1], label='RK4  v(t)', linestyle='--')
+        plt.ylabel('Prędkość v(t) [m/s]')
+        plt.xlabel('Czas [s]')
+        plt.title('Prędkość układu')
+        plt.grid()
+        plt.legend()
 
-while True:
-    answer = input("Czy chcesz zmienić parametr i przeliczyć symulację? (tak lub nie): ").lower()
-    if answer != 'tak':
-        print("koniec")
-        break
+        plt.tight_layout()
+        plt.show()
+    except Exception as e:
+        print("Błąd:", e)
 
-    param_to_change = input("Który parametr chcesz zmienić? (M / b/ k / r / dt / T / θ[fi]): ").lower()
 
-    if param_to_change == 'm':
-        M = float(input("Nowa wartość dla M: "))
-    elif param_to_change == 'b':
-        b = float(input("Nowa wartość dla b: "))
-    elif param_to_change == 'k':
-        k = float(input("Nowa wartość dla k: "))
-    elif param_to_change == 'r':
-        r = float(input("Nowa wartość dla r: "))
-    elif param_to_change == 'dt':
-        dt = float(input("Nowa wartość dla dt: "))
-    elif param_to_change == 't':
-        T = float(input("Nowa wartość dla T: "))
-    elif param_to_change == 'fi':
-        fi_deg = float(input("Nowa wartość dla fi: "))
-    else:
-        print("Nieznany parametr.")
-        continue
+root = tk.Tk()
+root.title("Symulacja układu ")
 
-    main(T, M, b, k, fi_deg, dt, u_func)
+fields = {
+    "Masa M (kg)": "1.0",
+    "Tłumienie b (Ns/m)": "0.5",
+    "Sprężystość k (N/m)": "2.0",
+    "Promień r (m)": "0.1",
+    "Krok czasowy dt (s)": "0.01",
+    "Czas symulacji T (s)": "10",
+    "Kąt początkowy θ [deg]": "30"
+}
+
+entries = {}
+for i, (label, default) in enumerate(fields.items()):
+    tk.Label(root, text=label).grid(row=i, column=0, sticky="e")
+    ent = tk.Entry(root)
+    ent.insert(0, default)
+    ent.grid(row=i, column=1)
+    entries[label] = ent
+
+entry_M = entries["Masa M (kg)"]
+entry_b = entries["Tłumienie b (Ns/m)"]
+entry_k = entries["Sprężystość k (N/m)"]
+entry_r = entries["Promień r (m)"]
+entry_dt = entries["Krok czasowy dt (s)"]
+entry_T = entries["Czas symulacji T (s)"]
+entry_fi = entries["Kąt początkowy θ [deg]"]
+
+
+signal_type = ttk.Combobox(root, values=["Skok", "Trójkąt", "Sinus"])
+signal_type.current(0)
+tk.Label(root, text="Typ sygnału:").grid(row=7, column=0)
+signal_type.grid(row=7, column=1)
+
+tk.Label(root, text="Parametr 1 (amplituda)").grid(row=8, column=0)
+param1 = tk.Entry(root)
+param1.insert(0, "1.0")
+param1.grid(row=8, column=1)
+
+tk.Label(root, text="Parametr 2 (czas/okres/częst.)").grid(row=9, column=0)
+param2 = tk.Entry(root)
+param2.insert(0, "1.0")
+param2.grid(row=9, column=1)
+
+tk.Button(root, text="Uruchom symulację", command=run_simulation).grid(row=10, column=0, columnspan=2, pady=10)
+
+root.mainloop()
